@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ماشین‌حساب مصرف انرژی و هزینه عملیاتی</title>
+
+  <style>
+    body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 20px;
+            background-color: #f4f7f6;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #007bff;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="number"],
+        select {
+            width: calc(100% - 20px);
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 25px;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        #result {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #e9f7ef;
+            border-left: 5px solid #28a745;
+            border-radius: 5px;
+            font-size: 1.1em;
+            color: #333;
+        }
+        #result strong {
+            color: #1a6d32;
+        }
+  </style>
+
+  
+</head>
+<body>
+  <div class="container">
+        <h1>ماشین‌حساب مصرف انرژی و هزینه عملیاتی</h1>
+        <form id="energyCostForm">
+            <div class="form-group">
+                <label for="systemType">نوع سیستم سرمایشی:</label>
+                <select id="systemType" required>
+                    <option value="AC">کولر گازی (اسپلیت)</option>
+                    <option value="Fancoil">فن‌کویل (متصل به چیلر)</option>
+                    <option value="Chiller">چیلر (جذبی/تراکمی)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="capacity">ظرفیت سیستم (BTU/hr یا تن تبرید):</label>
+                <input type="number" id="capacity" placeholder="مثال: 24000 (BTU) یا 10 (تن)" min="1" required>
+                <small>برای کولر گازی و فن‌کویل: BTU/hr. برای چیلر: تن تبرید.</small>
+            </div>
+            <div class="form-group">
+                <label for="unitType">واحد ظرفیت وارد شده:</label>
+                <select id="unitType" required>
+                    <option value="BTU">BTU/hr</option>
+                    <option value="Ton">تن تبرید</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="eerCop">بازده انرژی (EER برای AC/Fancoil، COP برای Chiller):</label>
+                <input type="number" id="eerCop" placeholder="مثال: 3.2 (COP) یا 10 (EER)" min="1" step="0.1" required>
+                <small>EER برای کولر گازی و فن‌کویل (هرچه بالاتر بهتر). COP برای چیلر (هرچه بالاتر بهتر).</small>
+            </div>
+            <div class="form-group">
+                <label for="dailyHours">ساعات کارکرد در روز (ساعت):</label>
+                <input type="number" id="dailyHours" placeholder="مثال: 8" min="0" max="24" required>
+            </div>
+            <div class="form-group">
+                <label for="coolingDays">تعداد روزهای سرمایشی در سال:</label>
+                <input type="number" id="coolingDays" placeholder="مثال: 120" min="0" max="365" required>
+            </div>
+            <div class="form-group">
+                <label for="electricityRate">تعرفه برق (ریال/کیلووات‌ساعت):</label>
+                <input type="number" id="electricityRate" placeholder="مثال: 1500" min="0" step="1" required>
+            </div>
+            <button type="submit">محاسبه مصرف و هزینه</button>
+        </form>
+        <div id="result" style="display:none;">
+            <h2>نتایج مصرف انرژی:</h2>
+            <p>مصرف انرژی سالانه: <strong><span id="annualEnergyConsumption"></span> کیلووات‌ساعت</strong></p>
+            <p>هزینه سالانه برق: <strong><span id="annualCost"></span> ریال</strong></p>
+            <p>هزینه ماهانه تقریبی: <strong><span id="monthlyCost"></span> ریال</strong></p>
+            <p><strong>نکته:</strong> این محاسبات تقریبی است و به عواملی مانند نوسانات بار، دمای محیط، نگهداری و مدل دقیق دستگاه بستگی دارد.</p>
+        </div>
+    </div>
+
+  <script>
+    document.getElementById('energyCostForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const systemType = document.getElementById('systemType').value;
+            let capacity = parseFloat(document.getElementById('capacity').value);
+            const unitType = document.getElementById('unitType').value;
+            const eerCop = parseFloat(document.getElementById('eerCop').value);
+            const dailyHours = parseFloat(document.getElementById('dailyHours').value);
+            const coolingDays = parseFloat(document.getElementById('coolingDays').value);
+            const electricityRate = parseFloat(document.getElementById('electricityRate').value);
+
+            let powerConsumptionWatts; // Total power consumption in Watts
+            
+            if (unitType === 'Ton') {
+                capacity *= 12000; // Convert Ton to BTU/hr
+            }
+
+            if (systemType === 'AC' || systemType === 'Fancoil') {
+                // EER (Energy Efficiency Ratio) = BTU/hr / Watt
+                // So, Watts = BTU/hr / EER
+                if (eerCop === 0) {
+                    alert("EER cannot be zero.");
+                    return;
+                }
+                powerConsumptionWatts = capacity / eerCop;
+            } else if (systemType === 'Chiller') {
+                // COP (Coefficient of Performance) = Cooling Capacity (Watts) / Power Input (Watts)
+                // 1 Ton of Refrigeration = 3517 Watts (cooling capacity)
+                // Power Input (Watts) = Cooling Capacity (Watts) / COP
+                const coolingCapacityWatts = capacity * 3517; // Convert BTU/hr to Watts
+                if (eerCop === 0) {
+                    alert("COP cannot be zero.");
+                    return;
+                }
+                powerConsumptionWatts = coolingCapacityWatts / eerCop;
+            }
+
+            const dailyKWh = (powerConsumptionWatts * dailyHours) / 1000; // Wh to kWh
+            const annualKWh = dailyKWh * coolingDays;
+            const annualCost = annualKWh * electricityRate;
+            const monthlyCost = annualCost / 12; // Simple average monthly cost
+
+            document.getElementById('annualEnergyConsumption').textContent = annualKWh.toFixed(2);
+            document.getElementById('annualCost').textContent = annualCost.toFixed(0);
+            document.getElementById('monthlyCost').textContent = monthlyCost.toFixed(0);
+            document.getElementById('result').style.display = 'block';
+        });
+  </script>
+</body>
+</html>
